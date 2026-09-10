@@ -101,7 +101,7 @@ function renderHome() {
 
   return `
   <section class="hero">
-    <div class="hero-bg" style="background-image:url('images/hero.svg')"></div>
+    <div class="hero-bg" style="background-image:url('images/hero.jpg')"></div>
     <div class="hero-inner">
       <p class="eyebrow" style="color:#e8d9c3">${SITE.addressLine}</p>
       <h1>${SITE.tagline}</h1>

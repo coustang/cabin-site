@@ -7,8 +7,8 @@ const SITE = {
   name: "Smoky Mountain Cabins",
   tagline: "Three unforgettable Gatlinburg-area cabins",
   // Your contact details shown on the site + used for booking-request emails
-  email: "you@example.com",          // <-- REPLACE with your real email
-  phone: "(865) 555-0100",           // <-- REPLACE (optional, leave "" to hide)
+  email: "mrbsproperty@gmail.com",
+  phone: "",                        // optional — add a number or leave "" to hide
   addressLine: "Gatlinburg & Sevierville, Tennessee",
 
   /* ------------------------------------------------------------
@@ -28,7 +28,7 @@ const SITE = {
   },
 
   /* If bookingMode is "request" or "both": where request emails go. */
-  bookingEmailTo: "you@example.com",  // <-- REPLACE with your real email
+  bookingEmailTo: "mrbsproperty@gmail.com",
 };
 
 const CABINS = [
@@ -45,12 +45,13 @@ const CABINS = [
     beds: "4 beds (2 king suites)",
     baths: "2.5 baths",
     sqft: "1,800 sq ft",
-    heroImage: "images/creekside-hero.svg",
+    heroImage: "images/creekside-hero.jpg",
     gallery: [
-      "images/creekside-1.svg",
-      "images/creekside-2.svg",
-      "images/creekside-3.svg",
-      "images/creekside-4.svg"
+      "images/creekside-1.jpg",
+      "images/creekside-2.jpg",
+      "images/creekside-3.jpg",
+      "images/creekside-4.jpg",
+      "images/creekside-5.jpg"
     ],
     shortDesc: "A spacious 1,800 sq ft cabin right between Gatlinburg and Pigeon Forge — two king suites, hot tub, arcade game room, and creek-side peace.",
     description: [
@@ -86,12 +87,13 @@ const CABINS = [
     beds: "6 beds (3 king + bunks)",
     baths: "3 baths",
     sqft: "2,400+ sq ft",
-    heroImage: "images/oaks-hero.svg",
+    heroImage: "images/oaks-hero.jpg",
     gallery: [
-      "images/oaks-1.svg",
-      "images/oaks-2.svg",
-      "images/oaks-3.svg",
-      "images/oaks-4.svg"
+      "images/oaks-1.jpg",
+      "images/oaks-2.jpg",
+      "images/oaks-3.jpg",
+      "images/oaks-4.jpg",
+      "images/oaks-5.jpg"
     ],
     shortDesc: "A 2,400 sq ft Wears Valley retreat with stunning mountain views, a wraparound deck with swing, hot tub, and a full arcade downstairs.",
     description: [
@@ -127,12 +129,13 @@ const CABINS = [
     beds: "8+ beds (4 king suites + queen bunks)",
     baths: "4 baths",
     sqft: "2,700 sq ft",
-    heroImage: "images/heaven-hero.svg",
+    heroImage: "images/heaven-hero.jpg",
     gallery: [
-      "images/heaven-1.svg",
-      "images/heaven-2.svg",
-      "images/heaven-3.svg",
-      "images/heaven-4.svg"
+      "images/heaven-1.jpg",
+      "images/heaven-2.jpg",
+      "images/heaven-3.jpg",
+      "images/heaven-4.jpg",
+      "images/heaven-5.jpg"
     ],
     shortDesc: "Our biggest cabin — 2,700 sq ft with four king suites, a home theater room, arcade, and a hot tub overlooking Mt. LeConte.",
     description: [
