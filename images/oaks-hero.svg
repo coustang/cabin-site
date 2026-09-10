@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7a5230"/>
+      <stop offset="1" stop-color="#c8a27a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1200" fill="url(#g)"/>
+  <!-- mountain silhouettes -->
+  <path d="M0 850 L300 560 L520 780 L760 480 L1020 800 L1280 540 L1600 820 L1600 1200 L0 1200 Z" fill="rgba(255,255,255,0.10)"/>
+  <path d="M0 950 L380 700 L640 900 L900 640 L1180 920 L1420 700 L1600 900 L1600 1200 L0 1200 Z" fill="rgba(255,255,255,0.14)"/>
+  <!-- cabin icon -->
+  <g transform="translate(800,760)" opacity="0.9">
+    <rect x="-130" y="-40" width="260" height="150" rx="8" fill="#faf6ee"/>
+    <path d="M-170 -40 L0 -160 L170 -40 Z" fill="#a97e52"/>
+    <rect x="-30" y="30" width="60" height="80" rx="4" fill="#2c5940"/>
+    <rect x="-95" y="10" width="45" height="45" rx="4" fill="#bcd6c4"/>
+    <rect x="50" y="10" width="45" height="45" rx="4" fill="#bcd6c4"/>
+  </g>
+  <text x="800" y="1020" text-anchor="middle" font-family="Georgia, serif" font-size="72" fill="#ffffff">The Oaks</text>
+  <text x="800" y="1090" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" fill="rgba(255,255,255,0.75)">Wears Valley Views · Wraparound Deck — replace with your photo</text>
+</svg>

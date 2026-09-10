@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smoky Mountain Cabins — Direct Booking</title>
+  <meta name="description" content="Book direct with us: three highly-rated Gatlinburg-area cabins in Tennessee. Creekside Memories, The Oaks & Views from Heaven. No booking fees, fast answers.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/config.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="#/">
+      <span class="leaf">🏔️</span>
+      <span id="brand-name">Smoky Mountain Cabins</span>
+    </a>
+    <button class="menu-btn" aria-label="Menu">☰</button>
+    <nav class="nav-links" id="nav-links">
+      <a href="#/">Home</a>
+      <a href="#/cabins">Cabins</a>
+      <a href="#/why-direct">Why book direct</a>
+      <a href="#/faq">FAQ</a>
+      <a class="btn btn-primary nav-cta" href="#/cabin/creekside">Book now</a>
+    </nav>
+  </div>
+</header>
+
+<main id="page"></main>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <h4>🏔️ Smoky Mountain Cabins</h4>
+      <p>Three unforgettable cabins between Gatlinburg and Pigeon Forge, Tennessee. Book direct for the best rates and a personal touch.</p>
+    </div>
+    <div>
+      <h4>Our cabins</h4>
+      <a href="#/cabin/creekside">Creekside Memories</a>
+      <a href="#/cabin/oaks">The Oaks</a>
+      <a href="#/cabin/heaven">Views from Heaven</a>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <a id="foot-email" href="#">you@example.com</a>
+      <a id="foot-phone" href="#">(865) 555-0100</a>
+      <p style="margin-top:12px;font-size:.9rem">Gatlinburg &amp; Sevierville, TN</p>
+    </div>
+  </div>
+  <div class="wrap foot-bottom">
+    © <span id="year"></span> Smoky Mountain Cabins · Book direct, save more.
+  </div>
+</footer>
+
+<script src="js/app.js"></script>
+<script>
+  // wire footer + brand from config
+  document.getElementById("brand-name").textContent = SITE.name;
+  const fe = document.getElementById("foot-email");
+  fe.textContent = SITE.email; fe.href = "mailto:" + SITE.email;
+  const fp = document.getElementById("foot-phone");
+  if (SITE.phone) { fp.textContent = SITE.phone; fp.href = "tel:" + SITE.phone.replace(/\D/g, ""); }
+  else { fp.style.display = "none"; }
+  document.getElementById("year").textContent = new Date().getFullYear();
+</script>
+
+</body>
+</html>
