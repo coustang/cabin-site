@@ -11,7 +11,67 @@
       "oaks": "",
       "heaven": ""
     },
-    "bookingEmailTo": "mrbsproperty@gmail.com"
+    "bookingEmailTo": "mrbsproperty@gmail.com",
+    "logo": "",
+    "footerBlurb": "Three unforgettable cabins between Gatlinburg and Pigeon Forge, Tennessee. Book direct for the best rates and a personal touch.",
+    "home": {
+      "heroSub": "Skip the fees. Book direct with us and get a personal touch, fast answers, and the same great cabins you'd find on Airbnb.",
+      "heroCta": "Browse our cabins",
+      "trustItems": [
+        "Superhost-rated cabins",
+        "4.9★ average guest rating",
+        "Self check-in smart locks"
+      ],
+      "browseEyebrow": "Choose your cabin",
+      "browseTitle": "Three cabins, one mountain standard",
+      "browseSub": "Every cabin is fully equipped, fast-wifi'd, and minutes from Gatlinburg, Pigeon Forge, Dollywood, and the Smoky Mountains.",
+      "whyEyebrow": "Why book direct",
+      "whyTitle": "The same cabins, a better experience",
+      "values": [
+        {
+          "icon": "💰",
+          "title": "No booking fees",
+          "text": "Book straight with us and keep the money you'd pay in platform service fees."
+        },
+        {
+          "icon": "⚡",
+          "title": "Faster answers",
+          "text": "Talk to a real human who knows these cabins inside and out — we reply fast, usually within the hour."
+        },
+        {
+          "icon": "🎁",
+          "title": "Host perks",
+          "text": "Loyal guests get first pick of dates, flexible requests, and local tips you won't find in a listing."
+        }
+      ],
+      "locEyebrow": "Location",
+      "locTitle": "In the heart of it all",
+      "locSub": "All three cabins sit between Gatlinburg and Pigeon Forge — minutes from the Parkway, Dollywood, and Great Smoky Mountains National Park.",
+      "faqEyebrow": "Good to know",
+      "faqTitle": "Frequently asked",
+      "faq": [
+        {
+          "q": "What's the check-in and check-out time?",
+          "a": "Check-in is from 4:00 PM, check-out by 10:00 AM. All cabins have smart-lock self check-in — you'll get your door code by email before arrival."
+        },
+        {
+          "q": "Is booking direct really cheaper than Airbnb?",
+          "a": "You avoid the platform's guest service fees, and we're happy to work with you on longer stays or special dates. The cabin experience is exactly the same."
+        },
+        {
+          "q": "Can I pay online?",
+          "a": "Send a booking request and we'll confirm availability quickly, then follow up with payment details. We can also set up secure online payment links for your stay."
+        },
+        {
+          "q": "Are pets allowed?",
+          "a": "Please mention any pets in your booking request so we can confirm what works for that cabin and date."
+        },
+        {
+          "q": "What's the cancellation policy?",
+          "a": "It depends on how close you are to check-in. We'll include the exact policy with every confirmation — just ask when you book."
+        }
+      ]
+    }
   },
   "cabins": [
     {

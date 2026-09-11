@@ -1,269 +1,283 @@
-/* ============================================================
-   Listing editor — loads data/site.json into a friendly form;
-   "Save & publish" commits the new JSON (and any uploaded
-   photos) straight to the GitHub repo via the Contents API,
-   and GitHub Pages redeploys automatically (~1 min).
+/* Listing editor — reads/writes data/site.json via GitHub Contents API */
+const OWNER = "coustang", REPO = "cabin-site", BRANCH = "master";
+let DATA = null, curCabin = 0, tabMode = "main";
+let LOGO_DATAURL = null; // uploaded logo (data URL) until published
 
-   Your token lives only in this browser's localStorage.
-   ============================================================ */
-(async function () {
-  const $ = (s) => document.querySelector(s);
-  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  /* ---------- repo + token ---------- */
-  const host = location.hostname || "localhost";
-  let OWNER = host.split(".")[0]; // coustang.github.io -> coustang
-  if (OWNER === "localhost" || OWNER === "127.0.0.1") OWNER = localStorage.getItem("gh_owner") || "";
-  const REPO = localStorage.getItem("gh_repo") || "cabin-site";
-  const BRANCH = "master";
-  let TOKEN = localStorage.getItem("gh_token") || "";
+/* ---------- token / connection ---------- */
+let TOKEN = localStorage.getItem("gh_token") || "";
 
-  function setBanner(msg, kind) {
-    const b = $("#banner");
-    if (!msg) { b.className = "banner"; b.textContent = ""; return; }
-    b.className = "banner " + (kind || "");
-    b.textContent = msg;
-  }
+function setBanner(msg, ok) { const b = $("#banner"); if (!msg) { b.className = "banner"; return; } b.textContent = msg; b.className = "banner " + (ok ? "ok" : "err"); }
+async function api(path, opts = {}) {
+  const r = await fetch("https://api.github.com/repos/" + OWNER + "/" + REPO + path, {
+    ...opts, headers: { Authorization: "Bearer " + TOKEN, Accept: "application/vnd.github+json", ...(opts.headers || {}) }
+  });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || ("GitHub API " + r.status));
+  return r;
+}
 
-  /* ---------- data ---------- */
-  let DATA = null;      // { site, cabins } working copy
-  let activeId = null;  // current cabin id in the form
-
-  async function loadData() {
-    const res = await fetch("data/site.json?ts=" + Date.now(), { cache: "no-store" });
-    if (!res.ok) throw new Error("Could not load data/site.json (" + res.status + ")");
-    DATA = await res.json();
-  }
-  const activeCabin = () => DATA.cabins.find((c) => c.id === activeId);
-
-  /* ---------- connect ---------- */
-  async function connect() {
-    TOKEN = $("#token").value.trim();
-    if (!TOKEN) return setBanner("Paste your GitHub token first.", "err");
-    localStorage.setItem("gh_token", TOKEN);
-    try {
-      const r = await gh("/user");
-      OWNER = r.login;
-      localStorage.setItem("gh_owner", OWNER);
-      $("#conn-chip").textContent = "Connected as " + r.login;
-      $("#conn-chip").classList.add("ok");
-      setBanner("");
-    } catch (e) {
-      setBanner("Connect failed: " + e.message + " — check the token has repo access to " + OWNER + "/" + REPO, "err");
-    }
-  }
-
-  /* ---------- GitHub Contents API ---------- */
-  async function gh(path, opts = {}) {
-    const r = await fetch("https://api.github.com" + path, Object.assign({
-      headers: { Authorization: "Bearer " + TOKEN, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
-    }, opts));
-    if (!r.ok) {
-      let msg = r.status;
-      try { const j = await r.json(); msg = j.message || msg; } catch (_) {}
-      throw new Error(msg);
-    }
-    return r.status === 204 ? null : r.json();
-  }
-
-  function toB64(str) {
-    const bytes = new TextEncoder().encode(str);
-    let bin = "";
-    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    return btoa(bin);
-  }
-
-  async function fileSha(path) {
-    try {
-      const j = await gh(`/repos/${OWNER}/${REPO}/contents/${path}?ref=${BRANCH}`);
-      return j.sha;
-    } catch (e) { return null; } // not there yet -> create
-  }
-
-  async function putFile(path, b64content, message) {
-    const sha = await fileSha(path);
-    const body = { message, content: b64content };
-    if (sha) body.sha = sha;
-    return gh(`/repos/${OWNER}/${REPO}/contents/${path}`, { method: "PUT", body: JSON.stringify(body) });
-  }
-
-  /* ---------- form rendering ---------- */
-  function renderAll() {
-    $("#editor").style.display = "";
-    $("#bar").style.display = "";
-    renderTabs();
-    renderCabinForm();
-    renderSiteSettings();
-  }
-
-  function renderTabs() {
-    const t = $("#cabin-tabs");
-    t.innerHTML = DATA.cabins.map((c) => `<button class="tab ${c.id === activeId ? "active" : ""}" data-id="${esc(c.id)}">${esc(c.name)}</button>`).join("");
-    t.querySelectorAll(".tab").forEach((b) => b.onclick = () => { activeId = b.dataset.id; renderTabs(); renderCabinForm(); });
-  }
-
-  const NUM_FIELDS = ["reviews", "guests", "bedrooms"];
-  const LIST_FIELDS = { amenities: "\n", description: "\n", notes: "\n" }; // textarea, one item per line
-  const DIST_FIELD = "distances"; // "Place | distance" per line
-
-  function bindFields() {
-    document.querySelectorAll("[data-f]").forEach((el) => {
-      el.oninput = () => {
-        const c = activeCabin();
-        if (!c) return;
-        const f = el.dataset.f;
-        if (LIST_FIELDS[f]) c[f] = el.value.split("\n").map((s) => s.trim()).filter(Boolean);
-        else if (f === DIST_FIELD) {
-          c.distances = el.value.split("\n").map((line) => line.split("|").map((x) => x.trim())).filter((p) => p.length >= 2 && p[0]);
-        } else if (NUM_FIELDS.includes(f)) c[f] = Number(el.value) || 0;
-        else c[f] = el.value;
-      };
-    });
-    document.querySelectorAll("[data-s]").forEach((el) => {
-      el.oninput = () => { DATA.site[el.dataset.s] = el.value; };
-    });
-    document.querySelectorAll("[data-hl]").forEach((el) => {
-      el.oninput = () => { DATA.site.hospitableLinks[el.dataset.hl] = el.value; };
-    });
-  }
-
-  function renderCabinForm() {
-    const c = activeCabin();
-    if (!c) return;
-    document.querySelectorAll("[data-f]").forEach((el) => {
-      const f = el.dataset.f;
-      if (LIST_FIELDS[f]) el.value = (c[f] || []).join("\n");
-      else if (f === DIST_FIELD) el.value = (c.distances || []).map(([p, d]) => p + " | " + d).join("\n");
-      else el.value = c[f] == null ? "" : c[f];
-    });
-    renderHero(c);
-    renderGallery(c);
-  }
-
-  function renderSiteSettings() {
-    document.querySelectorAll("[data-s]").forEach((el) => { el.value = DATA.site[el.dataset.s] || ""; });
-    const hlWrap = $("#hospitable-links");
-    if (hlWrap && !hlWrap.children.length) {
-      hlWrap.innerHTML = DATA.cabins.map((c) => `<label class="f">Hospitable pay link — ${esc(c.name)}<input type="text" data-hl="${esc(c.id)}"></label>`).join("");
-    }
-    document.querySelectorAll("[data-hl]").forEach((el) => { el.value = (DATA.site.hospitableLinks || {})[el.dataset.hl] || ""; });
-  }
-
-  /* ---------- photos ---------- */
-  function renderHero(c) {
-    const prev = $("#hero-prev");
-    if (c.heroImage) { prev.src = c.heroImage; prev.style.display = ""; } else { prev.style.display = "none"; }
-  }
-
-  function renderGallery(c) {
-    const g = $("#gallery");
-    g.innerHTML = c.gallery.map((p, i) => `
-      <div class="ph">
-        <img src="${esc(p)}" alt="">
-        <span class="idx">${i + 1}</span>
-        <div class="ctl">
-          <button data-act="left" title="Move earlier" ${i === 0 ? "disabled" : ""}>◀</button>
-          <button data-act="del" title="Remove">✕</button>
-          <button data-act="right" title="Move later" ${i === c.gallery.length - 1 ? "disabled" : ""}>▶</button>
-        </div>
-      </div>`).join("");
-    g.querySelectorAll("button").forEach((b) => {
-      b.onclick = () => {
-        const i = [...g.children].indexOf(b.closest(".ph"));
-        const act = b.dataset.act;
-        if (act === "del") c.gallery.splice(i, 1);
-        else if (act === "left" && i > 0) [c.gallery[i - 1], c.gallery[i]] = [c.gallery[i], c.gallery[i - 1]];
-        else if (act === "right" && i < c.gallery.length - 1) [c.gallery[i + 1], c.gallery[i]] = [c.gallery[i], c.gallery[i + 1]];
-        renderGallery(c);
-      };
-    });
-  }
-
-  /* client-side resize/compress, returns {name, b64} */
-  async function processImage(file) {
-    const bmp = await createImageBitmap(file);
-    const maxW = 1600;
-    let w = bmp.width, h = bmp.height;
-    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-    const canvas = document.createElement("canvas");
-    canvas.width = w; canvas.height = h;
-    canvas.getContext("2d").drawImage(bmp, 0, 0, w, h);
-    const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.82));
-    const b64 = await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(",")[1]); fr.readAsDataURL(blob); });
-    return { name: "upload-" + Date.now() + "-" + Math.floor(Math.random() * 900 + 100) + ".jpg", b64 };
-  }
-
-  let pendingUploads = []; // {name,b64} for photos added this session
-
-  async function addFiles(input, target) {
-    const c = activeCabin();
-    if (!c) return;
-    for (const file of input.files) {
-      try {
-        const img = await processImage(file);
-        if (target === "hero") c.heroImage = "images/" + img.name;
-        else c.gallery.push("images/" + img.name);
-        pendingUploads.push(img); // remember to commit the file itself on publish
-      } catch (e) { setBanner("Couldn't process " + file.name + ": " + e.message, "err"); }
-    }
-    input.value = "";
-    renderCabinForm();
-  }
-
-  /* ---------- publish ---------- */
-  async function publish() {
-    const btn = $("#publish-btn"), st = $("#pub-status");
-    if (!TOKEN || !OWNER) return setBanner("Connect with your GitHub token first (top of the page).", "err");
-    btn.disabled = true;
-    try {
-      for (const c of DATA.cabins) if (!c.name || !(c.description && c.description.length)) throw new Error("Every cabin needs a name and at least one description line.");
-
-      // 1. commit any uploaded photos first
-      for (const img of pendingUploads) {
-        st.textContent = "Uploading photo " + img.name + "…";
-        await putFile("images/" + img.name, img.b64, "editor: add photo " + img.name);
-      }
-      pendingUploads = [];
-
-      // 2. commit the data file
-      const json = JSON.stringify(DATA, null, 2);
-      st.textContent = "Publishing site.json…";
-      await putFile("data/site.json", toB64(json), "editor: update listings");
-
-      setBanner("✅ Published! Your changes go live in about a minute.", "ok");
-      const base = location.origin + location.pathname.replace(/admin\.html.*$/, "");
-      st.innerHTML = `Live at <a href="${esc(base)}" target="_blank">${esc(base)}</a>`;
-    } catch (e) {
-      setBanner("Publish failed: " + e.message, "err");
-      st.textContent = "";
-    } finally {
-      btn.disabled = false;
-    }
-  }
-
-  /* ---------- init ---------- */
-  bindFields();
-  $("#connect-btn").onclick = connect;
-  $("#token").onkeydown = (e) => { if (e.key === "Enter") connect(); };
-  $("#publish-btn").onclick = publish;
-  $("#hero-file").onchange = (e) => addFiles(e.target, "hero");
-  $("#gal-file").onchange = (e) => addFiles(e.target, "gallery");
-  $("#hero-clear").onclick = () => { const c = activeCabin(); if (c) { c.heroImage = ""; renderHero(c); } };
-  $("#gal-add-url-btn").onclick = async () => {
-    const url = prompt("Image URL:");
-    if (!url) return;
-    const c = activeCabin();
-    c.gallery.push(url.trim());
-    renderGallery(c);
-  };
-
-  // always load the form (preview mode); connect + enable publishing when a token is present
+async function connect() {
+  const t = $("#token").value.trim();
+  if (!t) return setBanner("Paste a token first.", false);
+  TOKEN = t; localStorage.setItem("gh_token", t);
   try {
-    await loadData();
-    activeId = DATA.cabins[0].id;
-    renderAll();
+    await api("/"); // verify
+    const me = await (await fetch("https://api.github.com/user", { headers: { Authorization: "Bearer " + TOKEN } })).json();
+    $("#conn-chip").textContent = "Connected as " + me.login; $("#conn-chip").className = "chip ok";
+    setBanner("Connected. You can now Save & publish.", true);
+  } catch (e) { setBanner("Token rejected: " + e.message, false); }
+}
+
+/* ---------- load data ---------- */
+async function loadData() {
+  const r = await fetch("data/site.json?t=" + Date.now());
+  DATA = await r.json();
+  buildTabs();
+  switchTab(-1); // start on Main page tab
+  $("#editor").style.display = ""; $("#bar").style.display = "";
+}
+
+/* ---------- tabs ---------- */
+function buildTabs() {
+  const wrap = $("#cabin-tabs");
+  let html = `<button class="tab" data-tab="-1">🏠 Main page</button>`;
+  DATA.cabins.forEach((c, i) => { html += `<button class="tab" data-tab="${i}">${esc(c.name)}</button>`; });
+  wrap.innerHTML = html;
+  $$("#cabin-tabs .tab").forEach(b => b.onclick = () => switchTab(+b.dataset.tab));
+}
+
+let filledMain = false, filledCabin = false;
+function switchTab(i) {
+  // collect any unsaved edits from the currently visible form first
+  if (tabMode === "main" && filledMain) readMain();
+  else if (tabMode === "cabin" && filledCabin) readCabin();
+  if (i !== -1) curCabin = i; // keep last-viewed cabin even while on Main tab
+  tabMode = i === -1 ? "main" : "cabin";
+  $$("#cabin-tabs .tab").forEach((b, k) => b.classList.toggle("active", (k === 0 && tabMode === "main") || (k > 0 && k - 1 === curCabin)));
+  $("#main-form").style.display = tabMode === "main" ? "" : "none";
+  $("#cabin-form").style.display = tabMode === "cabin" ? "" : "none";
+  if (tabMode === "main") { fillMain(); filledMain = true; } else { fillCabin(); filledCabin = true; }
+}
+
+/* ---------- MAIN PAGE form ---------- */
+function H() { if (!DATA.site.home) DATA.site.home = {}; return DATA.site.home; }
+
+function fillMain() {
+  const s = DATA.site, h = H();
+  $$("[data-s]").forEach(el => el.value = s[el.dataset.s] ?? "");
+  $$("[data-h]").forEach(el => {
+    const v = h[el.dataset.h];
+    el.value = Array.isArray(v) ? v.join("\n") : (v ?? "");
+  });
+  renderLogoPrev();
+  // value cards (all inputs inside one [data-vc] wrapper so readMain can find them)
+  $("#value-cards").innerHTML = (h.values || []).map((v, i) => `
+    <div data-vc="${i}" style="margin-bottom:14px">
+      <div class="frow">
+        <label class="f">Icon (emoji)<input type="text" data-vci="icon" value="${esc(v.icon)}"></label>
+        <label class="f">Title<input type="text" data-vci="title" value="${esc(v.title)}"></label>
+      </div>
+      <label class="f" style="margin-bottom:4px">Text<textarea data-vci="text" style="min-height:60px">${esc(v.text)}</textarea></label>
+    </div>`).join("") +
+    `<button class="btn btn-ghost" id="vc-add">+ Add card</button>`;
+  $("#vc-add").onclick = () => { h.values.push({ icon: "✨", title: "", text: "" }); fillMain(); };
+  // faq (items are {q, a} objects; all inputs inside one [data-fqi] wrapper)
+  $("#faq-edit").innerHTML = (h.faq || []).map((f, i) => `
+    <div data-fqi="${i}" style="margin-bottom:14px">
+      <label class="f" style="margin-bottom:8px">Question<input type="text" data-fqk="q" value="${esc(f.q)}"></label>
+      <label class="f">Answer<textarea data-fqk="a" style="min-height:70px">${esc(f.a)}</textarea></label>
+    </div>`).join("") +
+    `<button class="btn btn-ghost" id="faq-add">+ Add question</button>`;
+  $("#faq-add").onclick = () => { h.faq.push({ q: "New question?", a: "Answer here." }); fillMain(); };
+  // hospitable links
+  $("#hospitable-links").innerHTML = DATA.cabins.map(c => `<label class="f">Hospitable pay link — ${esc(c.name)}<input type="text" data-hl="${c.id}" value="${esc(s.hospitableLinks?.[c.id] || "")}"></label>`).join("");
+}
+
+function readMain() {
+  const s = DATA.site;
+  $$("[data-s]").forEach(el => s[el.dataset.s] = el.value);
+  const h = H();
+  $$("[data-h]").forEach(el => {
+    const v = el.value.trim();
+    if (el.tagName === "TEXTAREA" && el.dataset.h === "trustItems") h.trustItems = v.split("\n").map(x => x.trim()).filter(Boolean);
+    else h[el.dataset.h] = v;
+  });
+  $$("#value-cards [data-vci]").forEach(el => {
+    const i = +el.closest("[data-vc]").dataset.vc, k = el.dataset.vci;
+    if (h.values[i]) h.values[i][k] = el.value.trim();
+  });
+  $$("#faq-edit [data-fqk]").forEach(el => {
+    const i = +el.closest("[data-fqi]").dataset.fqi, k = el.dataset.fqk;
+    if (h.faq[i]) h.faq[i][k] = el.value.trim();
+  });
+  $$("[data-hl]").forEach(el => { s.hospitableLinks = s.hospitableLinks || {}; s.hospitableLinks[el.dataset.hl] = el.value.trim(); });
+  h.values = (h.values || []).filter(v => v.title || v.text);
+  h.faq = (h.faq || []).filter(f => f.q);
+  s.home = h;
+}
+
+/* ---------- logo ---------- */
+function renderLogoPrev() {
+  const el = $("#logo-prev");
+  if (LOGO_DATAURL) el.innerHTML = `<img src="${LOGO_DATAURL}" alt="">`;
+  else if (DATA.site.logo) el.innerHTML = `<img src="${esc(DATA.site.logo)}" alt="">`;
+  else el.textContent = "🏔️";
+}
+
+async function fileToDataUrl(file, maxW) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, hgt = img.height;
+      if (maxW && w > maxW) { hgt = Math.round(hgt * maxW / w); w = maxW; }
+      const c = document.createElement("canvas"); c.width = w; c.height = hgt;
+      c.getContext("2d").drawImage(img, 0, 0, w, hgt);
+      res(c.toDataURL("image/jpeg", .85));
+    };
+    img.onerror = rej;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/* ---------- CABIN form ---------- */
+function C() { return DATA.cabins[curCabin]; }
+
+function fillCabin() {
+  const c = C();
+  $$("[data-f]").forEach(el => {
+    const k = el.dataset.f; let v = c[k];
+    if (Array.isArray(v)) v = v.join("\n");
+    el.value = v ?? "";
+  });
+  $("#hero-prev").src = c.heroImage || "images/hero.jpg";
+  renderGallery();
+}
+
+function readCabin() {
+  const c = C();
+  $$("[data-f]").forEach(el => {
+    const k = el.dataset.f, v = el.value;
+    if (["description", "amenities", "notes"].includes(k)) c[k] = v.split("\n").map(x => x.trim()).filter(Boolean);
+    else if (k === "distances") c.distances = v.split("\n").map(l => l.split("|")).map(p => p.map(x => x.trim())).filter(r => r[0]);
+    else if (["reviews", "guests", "bedrooms"].includes(k)) c[k] = parseInt(v) || 0;
+    else c[k] = v;
+  });
+}
+
+function renderGallery() {
+  const g = $("#gallery");
+  g.innerHTML = C().gallery.map((src, i) => `
+    <div class="ph" data-i="${i}">
+      <img src="${esc(src)}" alt="">
+      ${i === 0 ? '<span class="idx">1st</span>' : ""}
+      <div class="ctl">
+        <button title="Move left" data-act="l">◀</button>
+        <button title="Remove" data-act="x">✕</button>
+        <button title="Move right" data-act="r">▶</button>
+      </div>
+    </div>`).join("");
+  $$("#gallery .ph button").forEach(b => b.onclick = () => {
+    const i = +b.closest(".ph").dataset.i, a = b.dataset.act;
+    if (a === "x") C().gallery.splice(i, 1);
+    else if (a === "l" && i > 0) [C().gallery[i - 1], C().gallery[i]] = [C().gallery[i], C().gallery[i - 1]];
+    else if (a === "r" && i < C().gallery.length - 1) [C().gallery[i + 1], C().gallery[i]] = [C().gallery[i], C().gallery[i + 1]];
+    renderGallery();
+  });
+}
+
+/* ---------- publish ---------- */
+async function shaOf(path) {
+  const r = await api("/contents/" + path);
+  return (await r.json()).sha;
+}
+function dataUrlToBin(dataUrl) {
+  const b64 = dataUrl.split(",")[1];
+  return atob(b64);
+}
+async function putFile(path, content, msg, sha, isBinary) {
+  // isBinary: content is a latin1 string (from atob) → btoa directly
+  // text:     UTF-8 encode first so non-ASCII survives
+  const b64 = isBinary ? btoa(content) : btoa(unescape(encodeURIComponent(content)));
+  const body = { message: msg, content: b64, branch: BRANCH };
+  if (sha) body.sha = sha;
+  await api("/contents/" + path, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+}
+
+async function publish() {
+  const btn = $("#publish-btn");
+  if (!TOKEN || !$("#conn-chip").classList.contains("ok")) return setBanner("Connect with your GitHub token first (top of page).", false);
+  readMain(); readCabin();
+  btn.disabled = true; $("#pub-status").textContent = "Publishing…";
+  try {
+    // 1) upload logo image file if a new one was picked (binary!)
+    if (LOGO_DATAURL) {
+      let sha = null; try { sha = await shaOf("images/logo.jpg"); } catch {}
+      await putFile("images/logo.jpg", dataUrlToBin(LOGO_DATAURL), "editor: update site logo", sha, true);
+      DATA.site.logo = "images/logo.jpg"; // point JSON at the uploaded file
+    }
+    // 2) upload any in-memory photo uploads (data URLs) as real files
+    let upN = Date.now();
+    for (const c of DATA.cabins) {
+      if (c.heroImage && c.heroImage.startsWith("data:")) {
+        const path = `images/${c.id}-up${upN++}.jpg`;
+        await putFile(path, dataUrlToBin(c.heroImage), `editor: upload ${c.id} hero`, null, true);
+        c.heroImage = path;
+      }
+      for (let gi = 0; gi < c.gallery.length; gi++) {
+        const src = c.gallery[gi];
+        if (!src.startsWith("data:")) continue;
+        const path = `images/${c.id}-up${upN++}.jpg`;
+        await putFile(path, dataUrlToBin(src), `editor: upload ${c.id} photo`, null, true);
+        c.gallery[gi] = path;
+      }
+    }
+    // 3) commit updated content (JSON is ASCII-safe via encodeURIComponent round-trip)
+    let sha = null; try { sha = await shaOf("data/site.json"); } catch {}
+    const jsonBin = decodeURIComponent(encodeURIComponent(JSON.stringify(DATA, null, 2)));
+    await putFile("data/site.json", jsonBin, "editor: update site content", sha);
+    $("#pub-status").textContent = "✅ Published! Live in ~1 minute.";
+    setBanner("Published successfully.", true);
   } catch (e) {
-    setBanner("Couldn't load site data: " + e.message, "err");
-  }
-  if (TOKEN) { $("#token").value = TOKEN; connect(); }
-})();
+    $("#pub-status").textContent = "";
+    setBanner("Publish failed: " + e.message, false);
+  } finally { btn.disabled = false; }
+}
+
+/* ---------- init ---------- */
+$("#connect-btn").onclick = connect;
+$("#token").onkeydown = e => { if (e.key === "Enter") connect(); };
+if (TOKEN) $("#token").value = TOKEN; // prefill, user can hit Connect
+$("#publish-btn").onclick = publish;
+
+// logo upload
+$("#logo-file").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    LOGO_DATAURL = await fileToDataUrl(f, 512);
+    renderLogoPrev();
+    setBanner("Logo ready — hit Save & publish to make it live.", true);
+  } catch { setBanner("Couldn't read that image file.", false); }
+};
+$("#logo-clear").onclick = () => { LOGO_DATAURL = null; DATA.site.logo = ""; renderLogoPrev(); };
+
+// hero photo
+$("#hero-file").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { C().heroImage = await fileToDataUrl(f, 1600); $("#hero-prev").src = C().heroImage; } catch {}
+};
+$("#hero-clear").onclick = () => { C().heroImage = ""; $("#hero-prev").src = "images/hero.jpg"; };
+
+// gallery add by URL / upload
+$("#gal-add-url-btn").onclick = async () => {
+  const u = prompt("Paste image URL:"); if (!u) return;
+  C().gallery.push(u.trim()); renderGallery();
+};
+$("#gal-file").onchange = async e => {
+  for (const f of e.target.files) { try { C().gallery.push(await fileToDataUrl(f, 1600)); } catch {} }
+  renderGallery(); e.target.value = "";
+};
+
+loadData().catch(e => setBanner("Couldn't load data/site.json: " + e.message, false));

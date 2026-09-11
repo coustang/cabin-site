@@ -34,6 +34,9 @@
     .add-photo input[type=file] { font-size:.85rem; max-width:260px; }
     .hero-row { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
     .hero-prev { width:170px; aspect-ratio:16/9; object-fit:cover; border-radius:10px; background:#eee; }
+    .logo-row { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+    .logo-prev { width:72px; height:72px; object-fit:contain; border-radius:12px; background:#f3efe9; border:1.5px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:2rem; }
+    .logo-prev img { width:100%; height:100%; object-fit:contain; }
     .bar { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:2px solid var(--line); padding:12px 18px; display:flex; gap:10px; justify-content:center; z-index:50; box-shadow:0 -4px 18px rgba(0,0,0,.07); }
     .bar button { min-width:160px; padding:12px 20px; font-size:1rem; }
     #pub-status { text-align:center; margin-top:10px; font-weight:700; color:#555; min-height:1.3em; font-size:.92rem; }
@@ -60,85 +63,153 @@
     <div id="editor" style="display:none">
       <div class="tabs" id="cabin-tabs"></div>
 
-      <fieldset>
-        <legend>Cabin details</legend>
-        <div class="frow">
-          <label class="f">Name<input type="text" data-f="name"></label>
-          <label class="f">Tagline (short line under name)<input type="text" data-f="tagline"></label>
-        </div>
-        <div class="frow">
-          <label class="f">Location<input type="text" data-f="location"></label>
-          <label class="f">Distance note (e.g. "3 miles to Gatlinburg")<input type="text" data-f="distanceNote"></label>
-        </div>
-        <div class="frow">
-          <label class="f">Rating (e.g. 4.9)<input type="text" data-f="rating"></label>
-          <label class="f">Review count<input type="number" data-f="reviews"></label>
-          <label class="f">Sleeps (guests)<input type="number" data-f="guests"></label>
-        </div>
-        <div class="frow">
-          <label class="f">Bedrooms<input type="number" data-f="bedrooms"></label>
-          <label class="f">Beds (e.g. "4 beds (2 king suites)")<input type="text" data-f="beds"></label>
-          <label class="f">Bathrooms (e.g. "2.5 baths")<input type="text" data-f="baths"></label>
-          <label class="f">Size (e.g. "1,800 sq ft")<input type="text" data-f="sqft"></label>
-        </div>
-      </fieldset>
+      <!-- ============ MAIN PAGE TAB ============ -->
+      <div id="main-form">
+        <fieldset>
+          <legend>Branding — logo &amp; tab icon</legend>
+          <p class="hint" style="margin-top:0">Upload a square image (e.g. 512×512) and it becomes the icon in the top-left corner <b>and</b> the browser-tab favicon. Leave empty to use the 🏔️ emoji.</p>
+          <div class="logo-row">
+            <div id="logo-prev" class="logo-prev">🏔️</div>
+            <input type="file" id="logo-file" accept="image/*">
+            <button class="btn btn-ghost" id="logo-clear">Remove logo</button>
+          </div>
+        </fieldset>
 
-      <fieldset>
-        <legend>Description</legend>
-        <label class="f" style="margin-bottom:12px">Short description (shown on the home page card)<textarea data-f="shortDesc" style="min-height:70px"></textarea></label>
-        <label class="f">Full description — one paragraph per line<textarea data-f="description" style="min-height:160px"></textarea></label>
-      </fieldset>
+        <fieldset>
+          <legend>Main page — hero (top of home)</legend>
+          <div class="frow">
+            <label class="f">Site name (nav + footer)<input type="text" data-s="name"></label>
+            <label class="f">Big headline<input type="text" data-s="tagline"></label>
+          </div>
+          <div class="frow">
+            <label class="f">Address line (small text above headline)<input type="text" data-s="addressLine"></label>
+          </div>
+          <label class="f" style="margin-bottom:12px">Text under the headline<textarea data-h="heroSub" style="min-height:70px"></textarea></label>
+          <div class="frow">
+            <label class="f">Button text<input type="text" data-h="heroCta"></label>
+          </div>
+          <label class="f">Trust line (one item per line, shown under the button)<textarea data-h="trustItems" style="min-height:80px"></textarea></label>
+        </fieldset>
 
-      <fieldset>
-        <legend>Amenities (one per line)</legend>
-        <textarea data-f="amenities" style="min-height:150px"></textarea>
-      </fieldset>
+        <fieldset>
+          <legend>Main page — "browse cabins" section</legend>
+          <div class="frow">
+            <label class="f">Small label above heading<input type="text" data-h="browseEyebrow"></label>
+            <label class="f">Heading (e.g. "Three cabins, one mountain standard")<input type="text" data-h="browseTitle"></label>
+          </div>
+          <label class="f">Text under heading<textarea data-h="browseSub" style="min-height:70px"></textarea></label>
+        </fieldset>
 
-      <fieldset>
-        <legend>Getting around — one "Place | distance" per line</legend>
-        <textarea data-f="distances" style="min-height:120px; font-size:.9rem"></textarea>
-      </fieldset>
+        <fieldset>
+          <legend>Main page — "why book direct" cards</legend>
+          <div class="frow">
+            <label class="f">Small label above heading<input type="text" data-h="whyEyebrow"></label>
+            <label class="f">Heading<input type="text" data-h="whyTitle"></label>
+          </div>
+          <div id="value-cards"></div>
+        </fieldset>
 
-      <fieldset>
-        <legend>Good to know (one note per line)</legend>
-        <textarea data-f="notes" style="min-height:90px"></textarea>
-      </fieldset>
+        <fieldset>
+          <legend>Main page — location section</legend>
+          <div class="frow">
+            <label class="f">Small label above heading<input type="text" data-h="locEyebrow"></label>
+            <label class="f">Heading<input type="text" data-h="locTitle"></label>
+          </div>
+          <label class="f">Text under heading<textarea data-h="locSub" style="min-height:70px"></textarea></label>
+        </fieldset>
 
-      <fieldset>
-        <span class="sec-title">Hero photo</span>
-        <div class="hero-row">
-          <img id="hero-prev" class="hero-prev" alt="">
-          <input type="file" id="hero-file" accept="image/*">
-          <button class="btn btn-ghost" id="hero-clear">Remove</button>
-        </div>
-      </fieldset>
+        <fieldset>
+          <legend>Main page — FAQ</legend>
+          <div class="frow">
+            <label class="f">Small label above heading<input type="text" data-h="faqEyebrow"></label>
+            <label class="f">Heading<input type="text" data-h="faqTitle"></label>
+          </div>
+          <div id="faq-edit"></div>
+        </fieldset>
 
-      <fieldset>
-        <span class="sec-title">Gallery photos (first shows first)</span>
-        <div class="photo-grid" id="gallery"></div>
-        <div class="add-photo">
-          <input type="file" id="gal-file" accept="image/*" multiple>
-          <button class="btn btn-ghost" id="gal-add-url-btn">Add by URL</button>
-        </div>
-      </fieldset>
+        <fieldset>
+          <legend>Main page — footer</legend>
+          <label class="f">Footer blurb<textarea data-s="footerBlurb" style="min-height:70px"></textarea></label>
+        </fieldset>
 
-      <fieldset>
-        <legend>Site settings (all cabins)</legend>
-        <div class="frow">
-          <label class="f">Site name<input type="text" data-s="name"></label>
-          <label class="f">Hero tagline<input type="text" data-s="tagline"></label>
-          <label class="f">Address line (under hero)<input type="text" data-s="addressLine"></label>
-        </div>
-        <div class="frow">
-          <label class="f">Contact email<input type="text" data-s="email"></label>
-          <label class="f">Booking requests to<input type="text" data-s="bookingEmailTo"></label>
-          <label class="f">Phone (blank to hide)<input type="text" data-s="phone"></label>
-        </div>
-        <div class="frow">
-          <label class="f">Booking mode<select data-s="bookingMode"><option value="request">Request — guest emails you</option><option value="link">Pay only — link to payment page</option><option value="both">Both — form + pay link</option></select></label>
-        </div>
-        <div class="frow" id="hospitable-links"></div>
-      </fieldset>
+        <fieldset>
+          <legend>Contact &amp; booking settings (all cabins)</legend>
+          <div class="frow">
+            <label class="f">Contact email<input type="text" data-s="email"></label>
+            <label class="f">Booking requests to<input type="text" data-s="bookingEmailTo"></label>
+            <label class="f">Phone (blank to hide)<input type="text" data-s="phone"></label>
+          </div>
+          <div class="frow">
+            <label class="f">Booking mode<select data-s="bookingMode"><option value="request">Request — guest emails you</option><option value="link">Pay only — link to payment page</option><option value="both">Both — form + pay link</option></select></label>
+          </div>
+          <div class="frow" id="hospitable-links"></div>
+        </fieldset>
+      </div>
+
+      <!-- ============ CABIN TABS ============ -->
+      <div id="cabin-form">
+        <fieldset>
+          <legend>Cabin details</legend>
+          <div class="frow">
+            <label class="f">Name<input type="text" data-f="name"></label>
+            <label class="f">Tagline (short line under name)<input type="text" data-f="tagline"></label>
+          </div>
+          <div class="frow">
+            <label class="f">Location<input type="text" data-f="location"></label>
+            <label class="f">Distance note (e.g. "3 miles to Gatlinburg")<input type="text" data-f="distanceNote"></label>
+          </div>
+          <div class="frow">
+            <label class="f">Rating (e.g. 4.9)<input type="text" data-f="rating"></label>
+            <label class="f">Review count<input type="number" data-f="reviews"></label>
+            <label class="f">Sleeps (guests)<input type="number" data-f="guests"></label>
+          </div>
+          <div class="frow">
+            <label class="f">Bedrooms<input type="number" data-f="bedrooms"></label>
+            <label class="f">Beds (e.g. "4 beds (2 king suites)")<input type="text" data-f="beds"></label>
+            <label class="f">Bathrooms (e.g. "2.5 baths")<input type="text" data-f="baths"></label>
+            <label class="f">Size (e.g. "1,800 sq ft")<input type="text" data-f="sqft"></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Description</legend>
+          <label class="f" style="margin-bottom:12px">Short description (shown on the home page card)<textarea data-f="shortDesc" style="min-height:70px"></textarea></label>
+          <label class="f">Full description — one paragraph per line<textarea data-f="description" style="min-height:160px"></textarea></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Amenities (one per line)</legend>
+          <textarea data-f="amenities" style="min-height:150px"></textarea>
+        </fieldset>
+
+        <fieldset>
+          <legend>Getting around — one "Place | distance" per line</legend>
+          <textarea data-f="distances" style="min-height:120px; font-size:.9rem"></textarea>
+        </fieldset>
+
+        <fieldset>
+          <legend>Good to know (one note per line)</legend>
+          <textarea data-f="notes" style="min-height:90px"></textarea>
+        </fieldset>
+
+        <fieldset>
+          <span class="sec-title">Hero photo</span>
+          <div class="hero-row">
+            <img id="hero-prev" class="hero-prev" alt="">
+            <input type="file" id="hero-file" accept="image/*">
+            <button class="btn btn-ghost" id="hero-clear">Remove</button>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <span class="sec-title">Gallery photos (first shows first)</span>
+          <div class="photo-grid" id="gallery"></div>
+          <div class="add-photo">
+            <input type="file" id="gal-file" accept="image/*" multiple>
+            <button class="btn btn-ghost" id="gal-add-url-btn">Add by URL</button>
+          </div>
+        </fieldset>
+      </div>
 
       <div id="pub-status"></div>
     </div>

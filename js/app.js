@@ -91,6 +91,14 @@ function requestFields(c) {
 /* ---------- pages ---------- */
 function renderHome() {
   document.title = `${SITE.name} — Direct Booking`;
+  const H = Object.assign({
+    heroSub: "", heroCta: "Browse our cabins", trustItems: [],
+    browseEyebrow: "", browseTitle: "", browseSub: "",
+    whyEyebrow: "", whyTitle: "", values: [],
+    locEyebrow: "", locTitle: "", locSub: "",
+    faqEyebrow: "", faqTitle: "", faq: []
+  }, SITE.home || {});
+
   const cards = CABINS.map(c => `
     <article class="card">
       <a href="#/cabin/${c.id}" style="display:block;color:inherit">
@@ -118,50 +126,45 @@ function renderHome() {
     <div class="hero-inner">
       <p class="eyebrow" style="color:#e8d9c3">${SITE.addressLine}</p>
       <h1>${SITE.tagline}</h1>
-      <p class="sub">Skip the fees. Book direct with us and get a personal touch, fast answers, and the same great cabins you'd find on Airbnb.</p>
+      ${H.heroSub ? `<p class="sub">${H.heroSub}</p>` : ""}
       <div class="hero-actions">
-        <a class="btn btn-wood" href="#cabins">Browse our cabins</a>
+        <a class="btn btn-wood" href="#cabins">${H.heroCta}</a>
         ${SITE.phone ? `<a class="btn btn-ghost-light" href="tel:${SITE.phone.replace(/\D/g, '')}">${SITE.phone}</a>` : ""}
       </div>
-      <div class="trust-row">
-        <span><b>Superhost</b>-rated cabins</span>
-        <span><b>4.9★</b> average guest rating</span>
-        <span><b>Self check-in</b> smart locks</span>
-      </div>
+      ${(H.trustItems || []).length ? `<div class="trust-row">${H.trustItems.map(t => `<span>${t}</span>`).join("")}</div>` : ""}
     </div>
   </section>
 
   <section class="block" id="cabins">
     <div class="wrap">
       <div class="section-head">
-        <p class="eyebrow">Choose your cabin</p>
-        <h2>Three cabins, one mountain standard</h2>
-        <p>Every cabin is fully equipped, fast-wifi'd, and minutes from Gatlinburg, Pigeon Forge, Dollywood, and the Smoky Mountains.</p>
+        ${H.browseEyebrow ? `<p class="eyebrow">${H.browseEyebrow}</p>` : ""}
+        <h2>${H.browseTitle}</h2>
+        ${H.browseSub ? `<p>${H.browseSub}</p>` : ""}
       </div>
       <div class="cabin-grid">${cards}</div>
     </div>
   </section>
 
+  ${(H.values || []).length ? `
   <section class="block alt" id="why-direct">
     <div class="wrap">
       <div class="section-head">
-        <p class="eyebrow">Why book direct</p>
-        <h2>The same cabins, a better experience</h2>
+        ${H.whyEyebrow ? `<p class="eyebrow">${H.whyEyebrow}</p>` : ""}
+        <h2>${H.whyTitle}</h2>
       </div>
       <div class="value-grid">
-        <div class="value-card"><div class="ico">💸</div><h3>No booking fees</h3><p>Book straight with us and keep the money you'd pay in platform service fees.</p></div>
-        <div class="value-card"><div class="ico">⚡</div><h3>Faster answers</h3><p>Talk to a real human who knows these cabins inside and out — we reply fast, usually within the hour.</p></div>
-        <div class="value-card"><div class="ico">🎁</div><h3>Host perks</h3><p>Loyal guests get first pick of dates, flexible requests, and local tips you won't find in a listing.</p></div>
+        ${H.values.map(v => `<div class="value-card"><div class="ico">${v.icon || "✨"}</div><h3>${v.title}</h3><p>${v.text}</p></div>`).join("")}
       </div>
     </div>
-  </section>
+  </section>` : ""}
 
   <section class="block">
     <div class="wrap">
       <div class="section-head">
-        <p class="eyebrow">Location</p>
-        <h2>In the heart of it all</h2>
-        <p>All three cabins sit between Gatlinburg and Pigeon Forge — minutes from the Parkway, Dollywood, and Great Smoky Mountains National Park.</p>
+        ${H.locEyebrow ? `<p class="eyebrow">${H.locEyebrow}</p>` : ""}
+        <h2>${H.locTitle}</h2>
+        ${H.locSub ? `<p>${H.locSub}</p>` : ""}
       </div>
       ${CABINS.map(c => `
         <div class="card" style="margin-bottom:20px">
@@ -175,25 +178,22 @@ function renderHome() {
 
   <section class="block alt" id="faq">
     <div class="wrap" style="max-width:760px">
-      <div class="section-head"><p class="eyebrow">Good to know</p><h2>Frequently asked</h2></div>
-      ${faqItems()}
+      <div class="section-head">${H.faqEyebrow ? `<p class="eyebrow">${H.faqEyebrow}</p>` : ""}<h2>${H.faqTitle}</h2></div>
+      ${faqItems(H)}
     </div>
   </section>`;
 }
 
-function faqItems() {
-  const items = [
-    ["What's the check-in and check-out time?", "Check-in is from 4:00 PM, check-out by 10:00 AM. All cabins have smart-lock self check-in — you'll get your door code by email before arrival."],
-    ["Is booking direct really cheaper than Airbnb?", "You avoid the platform's guest service fees, and we're happy to work with you on longer stays or special dates. The cabin experience is exactly the same."],
-    ["Can I pay online?", SITE.bookingMode === "request" ? "Send a booking request and we'll confirm availability quickly, then follow up with payment details. We can also set up secure online payment links for your stay." : "Yes — use the 'Pay online now' button to book instantly through our secure payment page."],
-    ["Are pets allowed?", "Please mention any pets in your booking request so we can confirm what works for that cabin and date."],
-    ["What's the cancellation policy?", "It depends on how close you are to check-in. We'll include the exact policy with every confirmation — just ask when you book."]
-  ];
-  return items.map(([q, a]) => `
+function faqItems(H) {
+  const items = (H && H.faq) || [];
+  return items.map(it => {
+    const q = Array.isArray(it) ? it[0] : it.q;
+    const a = Array.isArray(it) ? it[1] : it.a;
+    return `
     <div class="faq-item">
       <h3>${q}</h3>
       <p style="display:none">${a}</p>
-    </div>`).join("");
+    </div>`;}).join("");
 }
 
 function renderCabin(id) {
@@ -319,6 +319,22 @@ function initNav() {
 
 function wireChrome() {
   document.getElementById("brand-name").textContent = SITE.name;
+  // brand icon: uploaded logo image, or the emoji fallback
+  const leaf = document.querySelector(".leaf");
+  if (SITE.logo) {
+    leaf.innerHTML = `<img src="${SITE.logo}" alt="" style="width:34px;height:34px;object-fit:contain;border-radius:8px">`;
+  } else {
+    leaf.textContent = "🏔️";
+  }
+  // favicon (browser tab icon) — same logo if set, else emoji data-URI
+  let fav = document.querySelector('link[rel="icon"]');
+  if (!fav) { fav = document.createElement("link"); fav.rel = "icon"; document.head.appendChild(fav); }
+  if (SITE.logo) {
+    fav.href = SITE.logo;
+  } else {
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏔️</text></svg>`;
+    fav.href = "data:image/svg+xml," + encodeURIComponent(svg);
+  }
   const fe = document.getElementById("foot-email");
   fe.textContent = SITE.email; fe.href = "mailto:" + SITE.email;
   const fp = document.getElementById("foot-phone");
@@ -326,6 +342,10 @@ function wireChrome() {
   else { fp.style.display = "none"; }
   const fc = document.getElementById("foot-cabins");
   if (fc) fc.innerHTML = CABINS.map(c => `<a href="#/cabin/${c.id}">${c.name}</a>`).join("");
+  const fb = document.getElementById("foot-blurb");
+  if (fb && SITE.footerBlurb) fb.textContent = SITE.footerBlurb;
+  const fbrand = document.getElementById("foot-brand-name");
+  if (fbrand) fbrand.textContent = "🏔️ " + SITE.name;
   document.getElementById("year").textContent = new Date().getFullYear();
 }
 
