@@ -1,12 +1,25 @@
 /* ============================================================
-   App logic: renders cabins from config.js, handles #/cabin/<id>
-   routes and the booking request form. No build step required.
+   App logic: loads data/site.json, renders cabins, handles
+   #/cabin/<id> routes and the booking request form.
+   No build step required. Edit listings via /admin.html.
    ============================================================ */
+
+let SITE = null;
+let CABINS = [];
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
 function cabinById(id) { return CABINS.find(c => c.id === id); }
+
+/* ---------- data loading ---------- */
+async function loadData() {
+  const res = await fetch("data/site.json?ts=" + Date.now(), { cache: "no-store" });
+  if (!res.ok) throw new Error("site.json HTTP " + res.status);
+  const d = await res.json();
+  SITE = d.site;
+  CABINS = d.cabins || [];
+}
 
 /* ---------- shared UI bits ---------- */
 function ratingBadge(c) {
@@ -129,7 +142,7 @@ function renderHome() {
     </div>
   </section>
 
-  <section class="block alt">
+  <section class="block alt" id="why-direct">
     <div class="wrap">
       <div class="section-head">
         <p class="eyebrow">Why book direct</p>
@@ -160,7 +173,7 @@ function renderHome() {
     </div>
   </section>
 
-  <section class="block alt">
+  <section class="block alt" id="faq">
     <div class="wrap" style="max-width:760px">
       <div class="section-head"><p class="eyebrow">Good to know</p><h2>Frequently asked</h2></div>
       ${faqItems()}
@@ -304,10 +317,29 @@ function initNav() {
   $$(".nav-links a").forEach(a => a.addEventListener("click", () => $(".nav-links").classList.remove("open")));
 }
 
+function wireChrome() {
+  document.getElementById("brand-name").textContent = SITE.name;
+  const fe = document.getElementById("foot-email");
+  fe.textContent = SITE.email; fe.href = "mailto:" + SITE.email;
+  const fp = document.getElementById("foot-phone");
+  if (SITE.phone) { fp.textContent = SITE.phone; fp.href = "tel:" + SITE.phone.replace(/\D/g, ""); }
+  else { fp.style.display = "none"; }
+  const fc = document.getElementById("foot-cabins");
+  if (fc) fc.innerHTML = CABINS.map(c => `<a href="#/cabin/${c.id}">${c.name}</a>`).join("");
+  document.getElementById("year").textContent = new Date().getFullYear();
+}
+
 /* ---------- boot ---------- */
 window.addEventListener("hashchange", route);
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    await loadData();
+  } catch (err) {
+    $("#page").innerHTML = `<div class="wrap" style="padding:80px 24px;text-align:center">
+      <h1>Site data missing</h1><p>Could not load <code>data/site.json</code>. If you're opening this file directly from disk, serve it instead (e.g. <code>python -m http.server</code>) — the live site is unaffected.</p></div>`;
+    return;
+  }
+  wireChrome();
   initNav();
   route();
-  bindBookingForms();
 });
